@@ -113,11 +113,25 @@ jobs:
         run: |
           set -o pipefail
           python packaging/check_bundle.py dist/DentivaPro 2>&1 | tee -a ci-output.log
+      - name: Install NSIS
+        run: |
+          set -o pipefail
+          {
+            if command -v makensis >/dev/null 2>&1; then
+              echo "NSIS already available"
+            else
+              choco install nsis --no-progress -y
+            fi
+          } 2>&1 | tee -a ci-output.log
       - name: Build the installer (NSIS)
         run: |
           set -o pipefail
-          nsis="/c/Program Files (x86)/NSIS/makensis.exe"
-          [ -x "$nsis" ] || nsis=makensis
+          nsis="$(command -v makensis || true)"
+          if [ -z "$nsis" ] && [ -x "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
+            nsis="/c/Program Files (x86)/NSIS/makensis.exe"
+          fi
+          [ -n "$nsis" ] || { echo "makensis not found after installing NSIS"; exit 1; }
+          echo "using $nsis"
           version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
           "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a ci-output.log
       - name: Installer smoke test (silent install, launch, uninstall)
