@@ -52,6 +52,15 @@ FORBIDDEN_NAMES = ("pytest", "sample_data", "demo_data", "seed_data", "conftest.
 #: The icon set ships 60+ vector icons; fewer means the data files were not collected correctly.
 MINIMUM_ICON_COUNT = 50
 
+#: Fields the packaged application must report from its self-check (``DentivaPro.exe --check``).
+#: The output is a ``key : value`` list, parsed rather than substring-matched.
+EXPECTED_SELF_CHECK = {
+    "journal mode": "wal",
+    "foreign keys": "on",
+    "integrity check": "ok",
+    "bundled fonts": "ok",
+}
+
 
 def _candidates(root: Path, relative: str) -> list[Path]:
     """A bundle path, allowing for PyInstaller's ``_internal`` layout."""
@@ -94,12 +103,26 @@ def check_contents(bundle: Path) -> list[str]:
     return problems
 
 
-def check_launch(bundle: Path) -> list[str]:
-    """Start the packaged application offscreen and verify it initialises a database."""
+def parse_self_check(output: str) -> dict[str, str]:
+    """Parse the ``key : value`` lines the packaged application prints for ``--check``."""
+    reported: dict[str, str] = {}
+    for line in output.splitlines():
+        if ":" in line:
+            key, _, value = line.partition(":")
+            reported[key.strip()] = value.strip()
+    return reported
+
+
+def check_launch(bundle: Path) -> tuple[list[str], str]:
+    """Start the packaged application offscreen and verify it initialises a database.
+
+    Returns the problems found and the captured output (shown when something is wrong, because a
+    windowed executable's output is the only diagnostic available in CI).
+    """
     problems: list[str] = []
     executable = next(bundle.glob("*.exe"), None)
     if executable is None:
-        return [f"no executable found in {bundle} (bundle build did not complete?)"]
+        return [f"no executable found in {bundle} (bundle build did not complete?)"], ""
 
     with tempfile.TemporaryDirectory(prefix="dentivapro-smoke-") as data_root:
         environment = dict(os.environ)
@@ -116,20 +139,24 @@ def check_launch(bundle: Path) -> list[str]:
         output = completed.stdout + completed.stderr
         if completed.returncode != 0:
             problems.append(f"{executable.name} --check exited with {completed.returncode}")
-        expected_outputs = (
-            "schema version",
-            "integrity check ok",
-            "foreign keys on",
-            "bundled fonts ok",
-        )
+        reported = parse_self_check(output)
+
+        if not reported.get("schema version"):
+            problems.append("the application did not report a schema version")
+        tables = reported.get("tables", "")
+        if not tables.isdigit() or int(tables) < 1:
+            problems.append(f"the application reported tables as {tables!r}")
         problems += [
-            f"bundle output is missing {expected!r}"
-            for expected in expected_outputs
-            if expected not in output
+            f"self-check reported {key!r} as {reported.get(key)!r} (expected {expected!r})"
+            for key, expected in EXPECTED_SELF_CHECK.items()
+            if reported.get(key) != expected
         ]
+
         if not (Path(data_root) / "dentivapro.db").exists():
             problems.append("the application did not create its database file")
-    return problems
+        else:
+            print("bundle self-check:", ", ".join(f"{k}={v}" for k, v in sorted(reported.items())))
+    return problems, output
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -144,8 +171,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     problems = check_contents(bundle)
+    launch_output = ""
     if not args.skip_launch and sys.platform.startswith("win"):
-        problems += check_launch(bundle)
+        launch_problems, launch_output = check_launch(bundle)
+        problems += launch_problems
     elif not args.skip_launch:
         print("note: launch smoke test skipped (not running on Windows)")
 
@@ -153,6 +182,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{len(problems)} problem(s) found in {bundle}:", file=sys.stderr)
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
+        if launch_output.strip():
+            print("--- captured application output ---", file=sys.stderr)
+            print(launch_output[-4000:], file=sys.stderr)
         return 1
 
     print(f"bundle OK: {bundle}")
