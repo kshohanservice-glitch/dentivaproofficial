@@ -132,6 +132,9 @@ jobs:
           fi
           [ -n "$nsis" ] || { echo "makensis not found after installing NSIS"; exit 1; }
           echo "using $nsis"
+          # Git Bash on Windows rewrites /D... arguments into file paths; disable that.
+          export MSYS2_ARG_CONV_EXCL='*'
+          export MSYS_NO_PATHCONV=1
           version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
           "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a ci-output.log
       - name: Installer smoke test (silent install, launch, uninstall)
@@ -146,11 +149,13 @@ jobs:
             export DENTIVAPRO_DATA_ROOT="$RUNNER_TEMP/dentivapro-smoke-data"
             output=$("$installed" --check 2>&1)
             echo "$output"
-            for expected in "schema version" "integrity check ok" "foreign keys on" "bundled fonts ok"; do
-              case "$output" in
-                *"$expected"*) ;;
-                *) echo "installed application did not report '$expected'"; exit 1 ;;
-              esac
+            # The self-check prints padded "key : value" lines, so match on patterns.
+            for pattern in "schema version[[:space:]]*: [0-9]" "integrity check[[:space:]]*: ok" "foreign keys[[:space:]]*: on" "bundled fonts[[:space:]]*: ok"; do
+              if ! printf '%s\n' "$output" | grep -Eq "$pattern"; then
+                echo "installed application did not report pattern '$pattern'"
+                printf '%s\n' "$output"
+                exit 1
+              fi
             done
             "$LOCALAPPDATA/Programs/DentivaPro/Uninstall.exe" /S
             sleep 5
