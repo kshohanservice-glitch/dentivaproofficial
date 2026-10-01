@@ -169,9 +169,12 @@ Section "Uninstall"
   DeleteRegKey HKCU "${APP_KEY}"
 
   ${If} $RemoveClinicData == ${BST_CHECKED}
-    ; Data roots the product can create (see core/paths.py). Any failure to delete something is
-    ; reported by the uninstaller's own error handling rather than hidden.
-    RMDir /r "$PROGRAMDATA\${PRODUCT_SLUG}"
+    ; Data roots the product can create (see core/paths.py). NSIS has no $PROGRAMDATA constant, so the
+    ; machine-wide location is read from the environment; the per-user location is a built-in constant.
+    ReadEnvStr $0 "PROGRAMDATA"
+    ${If} $0 != ""
+      RMDir /r "$0\${PRODUCT_SLUG}"
+    ${EndIf}
     RMDir /r "$LOCALAPPDATA\${PRODUCT_SLUG}"
   ${EndIf}
 SectionEnd

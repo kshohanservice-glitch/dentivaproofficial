@@ -206,12 +206,24 @@ jobs:
             export DENTIVAPRO_DATA_ROOT="$RUNNER_TEMP/dentivapro-smoke-data"
             output=$("$installed" --check 2>&1)
             echo "$output"
-            for expected in "schema version" "integrity check ok" "foreign keys on" "bundled fonts ok"; do
-              case "$output" in
-                *"$expected"*) ;;
-                *) echo "installed application did not report '$expected'"; exit 1 ;;
-              esac
-            done
+
+            # The self-check prints aligned "key : value" lines; match the fields, not substrings, so a
+            # change of column padding can never make this test pass or fail for the wrong reason.
+            check_field() {
+              local label="$1" expected="$2"
+              if ! printf '%s\n' "$output" | grep -Eq "^[[:space:]]*${label}[[:space:]]*:[[:space:]]*${expected}[[:space:]]*$"; then
+                echo "installed application did not report '${label}: ${expected}'"
+                exit 1
+              fi
+              echo "verified ${label}: ${expected}"
+            }
+            check_field "journal mode" "wal"
+            check_field "foreign keys" "on"
+            check_field "integrity check" "ok"
+            check_field "bundled fonts" "ok"
+            check_field "schema version" "[0-9]+"
+            check_field "tables" "[0-9]+"
+            check_field "setup complete" "no"
 
             "$LOCALAPPDATA/Programs/DentivaPro/Uninstall.exe" /S
             wait_for_path "$installed" absent 60 || { echo "uninstall did not remove the application"; exit 1; }
