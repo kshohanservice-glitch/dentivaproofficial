@@ -19,6 +19,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: write   # temporary: the CI failure-diagnostics step posts to the pull request
 
 env:
   PYTHON_VERSION: "3.12"
@@ -64,10 +65,25 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libxkbcommon0 libdbus-1-3
       - name: Install dependencies
         run: |
+          set -o pipefail
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          python -m pip install -e ".[dev]" 2>&1 | tee -a pytest-output.log
       - name: Run tests
-        run: python -m pytest -q -p no:randomly
+        run: |
+          set -o pipefail
+          python -m pytest -q -p no:randomly 2>&1 | tee -a pytest-output.log
+      - name: Publish failure diagnostics to the pull request
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### ${{ github.job }} — captured output"
+            echo '```text'
+            tail -c 8000 pytest-output.log 2>/dev/null || echo "no output captured"
+            echo '```'
+          } > diagnostics.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
       - name: Upload rendered screens (review artefacts, Linux baseline)
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,7 +112,10 @@ jobs:
       - name: Verify Windows version resource is up to date
         run: python packaging/make_version_info.py --check
       - name: Run test suite on Windows
-        run: python -m pytest -q -p no:randomly
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -q -p no:randomly 2>&1 | tee -a pytest-output.log
       - name: Build the application bundle (PyInstaller onedir)
         run: pyinstaller --noconfirm --clean packaging/dentivapro.spec
       - name: Audit the bundle and launch it offscreen
@@ -124,6 +143,20 @@ jobs:
           if (Test-Path (Join-Path $env:LOCALAPPDATA "Programs\DentivaPro\DentivaPro.exe")) {
             throw "uninstall did not remove the application"
           }
+      - name: Publish failure diagnostics to the pull request
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### ${{ github.job }} — captured output"
+            echo '```text'
+            tail -c 8000 pytest-output.log 2>/dev/null || echo "no output captured"
+            echo '```'
+          } > diagnostics.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
+
       - name: Upload Windows render artefacts (for the authoritative golden baseline)
         if: always()
         uses: actions/upload-artifact@v4
