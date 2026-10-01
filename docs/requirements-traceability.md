@@ -9,12 +9,12 @@ documented reason, never silent).
 
 | ID | Requirement (condensed) | Design ref | Implementation | Verification | Phase | Status |
 |---|---|---|---|---|---|---|
-| R-01 | Product is a real commercial offline Windows desktop app, no demo/mock/placeholder content | 00 | whole repo | `qa/check_no_placeholders`, packaging test (no sample data in bundle) | 1–12 | planned |
-| R-02 | No internet required after installation/activation; no paid API/SDK/cloud/subscription | 00 §3, 08 §3 | whole repo | offline launch test, dependency audit, `qa/check_offline.py` | all | planned |
-| R-03 | Bangladesh-specific: English UI, Bengali Unicode input everywhere, BDT with ৳ | 00 §8 | `core/i18n`, `core/money`, `ui/design/text` | `tests/unit/test_money.py`, `tests/ui/test_bengali.py`, printing Bengali matrix | 1, 4–6 | planned |
-| R-04 | Exact decimal money handling (no binary floats for accounting) | 01 §1 | `core/money`, all money columns as integer paisa | `tests/unit/test_money.py`, `tests/integration/test_money_persistence.py`, Grep gate for float in finance | 2, 6 | planned |
-| R-05 | Premium flagship clinical design language, consistent design tokens, no per-screen styling | 03 | `ui/design/*`, `ui/components/*` | token-lint gate, UI goldens, UI review checklist | 1 and every UI phase | planned |
-| R-06 | App shell: header (identity, clinic, date, notifications, user) + collapsible sidebar with Practice/Clinical/Billing/Administration and the named modules | 03 §3 | `ui/shell/*`, `ui/screens/*` | `tests/ui/test_shell.py`, route checklist test | 1 | planned |
+| R-01 | Product is a real commercial offline Windows desktop app, no demo/mock/placeholder content | 00 | whole repo | `qa/check_no_placeholders`, packaging test (no sample data in bundle) | 1–12 | in progress |
+| R-02 | No internet required after installation/activation; no paid API/SDK/cloud/subscription | 00 §3, 08 §3 | whole repo | offline launch test, dependency audit, `qa/check_offline.py` | all | in progress |
+| R-03 | Bangladesh-specific: English UI, Bengali Unicode input everywhere, BDT with ৳ | 00 §8 | `core/i18n`, `core/money`, `ui/design/text` | `tests/unit/test_money.py`, `tests/ui/test_bengali.py`, printing Bengali matrix | 1, 4–6 | in progress |
+| R-04 | Exact decimal money handling (no binary floats for accounting) | 01 §1 | `core/money`, all money columns as integer paisa | `tests/unit/test_money.py`, `tests/integration/test_money_persistence.py`, Grep gate for float in finance | 2, 6 | in progress |
+| R-05 | Premium flagship clinical design language, consistent design tokens, no per-screen styling | 03 | `ui/design/*`, `ui/components/*` | token-lint gate, UI goldens, UI review checklist | 1 and every UI phase | in progress |
+| R-06 | App shell: header (identity, clinic, date, notifications, user) + collapsible sidebar with Practice/Clinical/Billing/Administration and the named modules | 03 §3 | `ui/shell/*`, `ui/screens/*` | `tests/ui/test_shell.py`, route checklist test | 1 | done |
 | R-07 | First-run setup wizard: clinic info, logo, address, phone, dentists (multiple, with designations, certifications, qualifications, signature config), admin account, currency, printing, config | 01 §5.2, 03 | `ui/wizards/setup/*`, `services/setup_service.py` | `tests/acceptance/test_first_run_setup.py` | 3 | planned |
 | R-08 | Setup is transactional and recoverable; no half-initialised data | 01 §5.2 | setup in a single transaction + resumable wizard state | `tests/integration/test_setup_atomicity.py`, interruption test | 3 | planned |
 | R-09 | Post-setup configurability of clinic/dentists/settings | 03, 01 | Settings screens | `tests/acceptance/test_settings_admin.py` | 3, 8 | planned |
@@ -57,20 +57,20 @@ documented reason, never silent).
 | R-46 | Referral management (reason, destination, date, notes, follow-up) in patient history | 01 §2.3 | `services/referral_service.py` | `tests/acceptance/test_referrals.py` | 4 | planned |
 | R-47 | Patient attachments: add/view/remove safely; included in backup | 01 §7, 05 | `services/attachment_service.py` | `tests/security/test_attachment_safety.py`, backup tests | 4, 8 | planned |
 | R-48 | Advanced global search across entities, permission-filtered, no leaks | 03, 02 | `services/search_service.py` | `tests/acceptance/test_global_search.py` | 7 | planned |
-| R-49 | Keyboard shortcuts for common workflows, non-interfering | 03 §6 | `ui/shell/shortcuts.py` | `tests/ui/test_shortcuts.py` | 1, 7 | planned |
+| R-49 | Keyboard shortcuts for common workflows, non-interfering | 03 §6 | `ui/shell/shortcuts.py` | `tests/ui/test_shortcuts.py` | 1, 7 | in progress |
 | R-50 | Centralised notification centre: appointments, inventory, expiry, backup, security; permission-aware; not noisy | 03 §3 | `services/notification_service.py` | `tests/acceptance/test_notifications.py` | 7 | planned |
 | R-51 | Comprehensive Settings (clinic, dentists, prescription/invoice, printing, paper, hours, appointment/queue, catalogues, medicine defaults, payments, inventory, notifications, backup, security, auto-lock, users/roles, data, localization) | 03, 01 | `ui/screens/admin/settings/*` | `tests/acceptance/test_settings_admin.py` | 3, 8 | planned |
 | R-52 | Destructive actions protected: permissions, explicit confirmation, typed phrases, consequence explanation | 05 §7 | destructive-action guards | `tests/security/test_destructive_guards.py` | 8 | planned |
-| R-53 | About section with Dentiva Pro identity and creator (Shohan Khan, helloiamshohan@gmail.com); no internal tech leakage | 03 | `ui/screens/admin/about.py` | `tests/ui/test_about.py` | 7, 8 | planned |
+| R-53 | About section with Dentiva Pro identity and creator (Shohan Khan, helloiamshohan@gmail.com); no internal tech leakage | 03 | `ui/screens/admin/about.py` | `tests/ui/test_about.py` | 7, 8 | in progress |
 | R-54 | Backup: local folder via native dialog, deterministic date-time naming, includes all data + attachments | 05 §1–3 | `backup/writer.py` | `tests/backup/test_backup_create.py` | 8 | planned |
 | R-55 | Automatic backups at 7/15/30-day intervals, understandable and reliable | 05 §5 | `backup/scheduler.py` | `tests/backup/test_schedule.py` | 8 | planned |
 | R-56 | Restore: select one/multiple, pre-restore safety backup, integrity validation, no change on validation failure | 05 §4 | `backup/restore.py` | `tests/backup/test_restore.py` | 8 | planned |
 | R-57 | Backup/restore transactional and failure-safe; honest status reporting | 05 §3–4 | staging + atomic swap + run records | `tests/backup/test_failure_paths.py` | 8 | planned |
 | R-58 | One-time offline activation with fixed code, never stored in plaintext, derived verification, protected state, honest limitation | 02 §7 | `security/activation.py`, `tools/derive_activation_constants.py` | `tests/security/test_activation.py`, `qa/check_secrets.py` | 2 | planned |
 | R-59 | Activation robust to corruption, survives restart, useful error messages without crypto detail | 02 §7 | activation state | `tests/security/test_activation_state.py` | 2, 11 | planned |
-| R-60 | Windows install/uninstall: files, shortcuts, registration, data preservation policy, clean removal | 07 §4 | `packaging/installer.nsi` | installer smoke test in CI, clean-machine checklist | 1, 11 | planned |
+| R-60 | Windows install/uninstall: files, shortcuts, registration, data preservation policy, clean removal | 07 §4 | `packaging/installer.nsi` | installer smoke test in CI, clean-machine checklist | 1, 11 | in progress |
 | R-61 | Installer tested on a clean environment: install → launch → activate → setup → restart → backup → restore → print → PDF → uninstall → reinstall | 07 §3, 06 §6 | CI installer smoke + manual checklist | Phase 11 acceptance record | 11 | planned |
-| R-62 | High-DPI support (100–200 %) without blur/clipping/microscopic text | 03 §2.6 | tokens + Qt DPI policy | golden tests at 5 DPI levels | 1, 9 | planned |
+| R-62 | High-DPI support (100–200 %) without blur/clipping/microscopic text | 03 §2.6 | tokens + Qt DPI policy | golden tests at 5 DPI levels | 1, 9 | in progress |
 | R-63 | Adapt to practical Windows screen sizes/aspect ratios (desktop responsive) | 03 §2.6 | responsive layout rules | layout invariant tests at 4 sizes | 9 | planned |
 | R-64 | Every screen has intentional empty/loading/success/warning/validation/permission-denied/data-error states | 03 §5 | components + screens | route state checklist test, UI goldens | all | planned |
 | R-65 | No fake buttons: every control works or does not exist | 03 §9 | whole UI | interaction tests + manual UI review checklist | all | planned |
@@ -88,22 +88,22 @@ documented reason, never silent).
 | R-77 | Local/offline PDF generation (no paid service) | 04 §1 | QPdfWriter | offline PDF test | 5 | planned |
 | R-78 | Clear relationship between clinical and financial data without mixing workflows | 03 | navigation/structure | UI review checklist | 4–7 | planned |
 | R-79 | Validation at UI, business and database layers | 01 §1, 06 | validators + CHECK constraints | `tests/services/test_validation_layers.py` | 2–6 | planned |
-| R-80 | Deliberate error handling; no swallowed errors; user-safe messages; technical detail logged | 00 §7 | `core/errors`, UI error boundary | `qa/check_no_silent_except`, error-path tests | 1, 10 | planned |
-| R-81 | Structured logging, privacy-respecting, no secrets/medical content in logs | 00 §7 | `core/logging` | `tests/unit/test_log_redaction.py` | 1, 10 | planned |
+| R-80 | Deliberate error handling; no swallowed errors; user-safe messages; technical detail logged | 00 §7 | `core/errors`, UI error boundary | `qa/check_no_silent_except`, error-path tests | 1, 10 | in progress |
+| R-81 | Structured logging, privacy-respecting, no secrets/medical content in logs | 00 §7 | `core/logging` | `tests/unit/test_log_redaction.py` | 1, 10 | in progress |
 | R-82 | Diagnostics mechanism without exposing developer tooling | 00 §7 | diagnostics export | `tests/ui/test_diagnostics.py` | 7, 10 | planned |
 | R-83 | Performance with large realistic datasets (pagination/virtualisation/indexes/aggregation) | 00 §9, 06 §8 | queries + models | `tests/perf/*` budgets | 9 | planned |
 | R-84 | Honest about practical storage limits (no claim of infinite storage) | 00 §11 | docs + UI text | documentation review | 12 | planned |
 | R-85 | Stress testing with realistic large datasets (patients, visits, prescriptions, invoices, payments, attachments, inventory, search, timeline) | 06 §8 | `tools/seed.py` + perf suite | Phase 9 stress report | 9 | planned |
-| R-86 | UI does not freeze; long operations show progress and are cancellable where safe | 00 §5, 03 | worker framework | `tests/ui/test_responsiveness.py` | 1, 8, 9 | planned |
+| R-86 | UI does not freeze; long operations show progress and are cancellable where safe | 00 §5, 03 | worker framework | `tests/ui/test_responsiveness.py` | 1, 8, 9 | in progress |
 | R-87 | Graceful handling of file/path/permission/space/removal/malformed-file errors | 05, 02 §6 | file utilities | `tests/backup/test_failure_paths.py`, attachment error tests | 4, 8 | planned |
 | R-88 | Native Windows folder selection, tested | 05 | `QFileDialog` wrapper | UI test + manual checklist | 8 | planned |
 | R-89 | Attachments protected from path traversal and unsafe names | 02 §6, 01 §7 | attachment service | `tests/security/test_attachment_safety.py` | 4 | planned |
 | R-90 | Local-action security as far as achievable; no frontend-only authorization | 02 | rbac + guards | permission matrix + tamper tests | 2 | planned |
-| R-91 | Dependency and licence audit recorded, with third-party notices | 08 | notices + `check_licenses.py` | CI licence job | 1, 10 | planned |
-| R-92 | Production build excludes dev dependencies/servers; reproducible to the extent practical | 07 §4 | PyInstaller spec + lock file | packaging tests | 1, 10, 12 | planned |
-| R-93 | Organised professional repository structure (UI/domain/data/services/security/printing/backup/config/utils/tests/assets/installer/CI/docs) | 07 §2 | repository layout | structure review | 1 | planned |
+| R-91 | Dependency and licence audit recorded, with third-party notices | 08 | notices + `check_licenses.py` | CI licence job | 1, 10 | in progress |
+| R-92 | Production build excludes dev dependencies/servers; reproducible to the extent practical | 07 §4 | PyInstaller spec + lock file | packaging tests | 1, 10, 12 | in progress |
+| R-93 | Organised professional repository structure (UI/domain/data/services/security/printing/backup/config/utils/tests/assets/installer/CI/docs) | 07 §2 | repository layout | structure review | 1 | done |
 | R-94 | No monolithic files; maintainable modules | 07 §2 | module layout | `qa/check_file_sizes.py` (soft cap 700 lines/module, justified exceptions listed) | 10 | planned |
-| R-95 | Automated tests at unit/integration/permission/financial/backup-restore/printing/E2E levels | 06 | `tests/*` | coverage gate + suite results | all | planned |
+| R-95 | Automated tests at unit/integration/permission/financial/backup-restore/printing/E2E levels | 06 | `tests/*` | coverage gate + suite results | all | in progress |
 | R-96 | Repeatable acceptance tests for all critical workflows (setup, auth, lock, patients, visits, chart, prescriptions, invoices, payments, inventory, accounting, RBAC, backup, restore, attachments, settings, audit, activation, restart, install, uninstall) | 06 §5 | `tests/acceptance/*` | acceptance matrix results | all | planned |
 | R-97 | Formal acceptance-test matrix mapping every major requirement to tests | this repo | `docs/acceptance-test-matrix.md` | matrix reviewed per phase | 0–12 | planned |
 | R-98 | Screen-by-screen UI inspection incl. common defect classes and long realistic content | 03 §9 | UI review checklist | Phase 9/11/12 records + goldens | 9, 11, 12 | planned |

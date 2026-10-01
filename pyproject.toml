@@ -1,0 +1,140 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dentivapro"
+version = "1.0.0"
+description = "Dentiva Pro — premium offline dental clinic management for Windows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "Shohan Khan", email = "helloiamshohan@gmail.com" }]
+keywords = ["dental", "clinic", "windows", "desktop", "offline"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: Healthcare Industry",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Operating System :: Microsoft :: Windows :: Windows 11",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Office/Business",
+]
+dependencies = [
+  "PySide6-Essentials==6.11.2",
+  "argon2-cffi==25.1.0",
+  "cryptography==50.0.2",
+  "platformdirs==4.12.2",
+  "segno==1.6.6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.1.1",
+  "pytest-qt==4.5.0",
+  "pytest-cov==7.1.0",
+  "pytest-timeout==2.4.0",
+  "pypdf==6.19.0",
+  "Pillow==12.3.0",
+  "ruff==0.16.9",
+  "mypy==2.3.1",
+  "pyinstaller==6.22.3",
+]
+
+[project.gui-scripts]
+dentivapro = "dentivapro.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/kshohanservice-glitch/dentivaproofficial"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dentivapro = ["assets/**/*", "data/db/schema/*.sql"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config --durations=15"
+timeout = 300
+markers = [
+  "ui: tests that construct Qt widgets (require the offscreen platform)",
+  "perf: performance budget tests",
+  "golden: pixel comparison tests",
+  "windows_only: tests that only run on Windows",
+]
+filterwarnings = [
+  "error::DeprecationWarning:dentivapro.*",
+  "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["src/dentivapro"]
+branch = true
+omit = ["*/__main__.py", "*/assets/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "tools"]
+extend-exclude = ["src/dentivapro/assets", "dist", "packaging/output"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "ISC",
+  "ICN", "PIE", "TID", "PYI", "RSE", "RET", "SIM", "TCH", "ARG", "PTH", "ERA",
+  "PL", "TRY", "FLY", "PERF", "FURB", "LOG", "G",
+]
+ignore = [
+  "E501",     # line length is handled by the formatter
+  "PLR0913",  # a few UI constructors legitimately take many keyword arguments
+  "TRY003",   # messages are constructed in one place by design (core.errors)
+  "EM101", "EM102",  # exception messages use literals for clarity in domain code
+  "PTH123",   # builtins.open is used deliberately for text streams in a few places
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests import Qt and application modules inside fixtures/helpers on purpose: the offscreen platform
+# must be selected before Qt is imported, and a local import makes the dependency of a single test clear.
+"tests/**" = ["PLR2004", "SLF001", "ARG001", "ARG002", "S101", "PLC0415", "E402", "TRY301"]
+"tools/**" = ["T201", "PLR2004"]
+"src/dentivapro/ui/**" = ["N802"]  # Qt overrides keep their Qt-assigned names
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/dentivapro"]
+strict = true
+warn_unreachable = true
+disallow_untyped_decorators = false
+plugins = []
+exclude = ["src/dentivapro/assets"]
+
+[[tool.mypy.overrides]]
+module = ["dentivapro.ui.*"]
+# Qt's generated stubs are incomplete for some signal/slot patterns.
+disallow_untyped_defs = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = ["segno", "concurrent.futures.*"]
+ignore_missing_imports = true
