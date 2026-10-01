@@ -20,6 +20,14 @@ comes from a command whose result is summarised below.
 | GitHub push/PR capability | `git ls-remote` and `gh pr list` succeed with the provided token | Branch/PR workflow is possible |
 | PyInstaller is functional (Linux) | analysis stage runs; fails only because the sandbox Python is not built with `--enable-shared` | The spec file is developed and validated here; the Windows bundle is produced in CI |
 
+## 1b. Windows pipeline verified in CI (Phase 2)
+
+| Capability | Evidence | Consequence |
+|---|---|---|
+| The packaged application runs on real Windows | `windows-build` job: PyInstaller bundle audited, then launched offscreen; it initialised a database and reported `journal mode : wal`, `foreign keys : on`, `integrity check : ok`, `bundled fonts : ok`, `schema version : 1`, `tables : 5` | The bundle is not merely built, it starts and works on the target platform |
+| The installer works end to end | NSIS build (30 MB, LZMA, no warnings) → silent install placed `DentivaPro.exe` and the Start Menu shortcut → application verified → silent uninstall removed both | The per-user install/uninstall lifecycle is proven on a clean runner, not on a developer machine |
+| The whole quality gate set runs on Windows and Linux | CI run 36836992197 @ `0011dae`: `quality`, `tests-linux`, `windows-build` all green | Phase 2's gate is evidenced by CI, not by local claims |
+
 ## 2. Verified limitations
 
 | Limitation | Evidence | Impact | Mitigation |
@@ -28,7 +36,7 @@ comes from a command whose result is summarised below.
 | `.NET`/NuGet unreachable | `api.nuget.org`, `packages.microsoft.com` → connection failure | Rules out a WPF/.NET stack in this environment | Not needed: the chosen stack is Python/Qt |
 | GitHub release-asset CDN blocked | `objects.githubusercontent.com` → no connection | Electron runtimes, apt packages, some binaries cannot be downloaded | Chosen stack depends only on PyPI, which is reachable |
 | Sandbox Python lacks shared library | PyInstaller analysis error | Local EXE bundling is impossible | Bundling is a CI responsibility; the spec is tested in CI |
-| Actions/K8s-style API scope missing on the token | `gh api .../actions/permissions` → 403 | CI run status/logs may not be readable from here | the CI workflow is verified in Phase 2 and its outcome reported honestly; if unavailable, the release report states it and relies on the user's account permissions |
+| Raw CI logs and artifacts cannot be downloaded here | `gh run view --log` and `gh run download` fail: the signed URLs point at `*.blob.core.windows.net` / `results-receiver.actions.githubusercontent.com`, which this environment cannot reach | A failing run cannot be diagnosed from its raw log | Runs, job/step results and **annotations are readable**, and the Windows job publishes the tail of its captured output as chunked annotations on failure — that is how the Phase 2 packaging defects were found. Artifacts are downloaded by the owner from the Actions UI |
 | No physical printers | No hardware in a sandbox | Real device behaviour cannot be proven here | Print layout is validated by rendering to PDF/PNG across the paper matrix; the physical printer checklist is manual in Phase 17 |
 | No Bengali-capable Windows font assurance | Sandbox lacks Bengali fonts by default | Rendering would show boxes without our fonts | Fonts are bundled in the app; a runtime check blocks printing if the font cannot load |
 | No antivirus/SmartScreen environment | Sandbox | Code-signing effect cannot be demonstrated | Signing is implemented in CI when a certificate exists; otherwise the release is explicitly documented as unsigned |
