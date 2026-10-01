@@ -1,9 +1,9 @@
-# Dentiva Pro — System Architecture Overview (Phase 0)
+# Dentiva Pro — System Architecture Overview (Phase 1)
 
 **Product:** Dentiva Pro — offline-first dental clinic management for Bangladesh
 **Target platform:** Windows 10 (1809+) / Windows 11, x64
 **Version target:** 1.0.0 (deterministic, final release line)
-**Document status:** Phase 0 baseline — architecture frozen for implementation unless a defect forces change
+**Document status:** Phase 1 baseline — architecture frozen for implementation unless a defect forces change
 
 ---
 
@@ -36,7 +36,7 @@ installation. A fixed one-time offline activation is the only gating mechanism.
 | Performance: 100 000 patient rows inserted in 0.89 s; indexed prefix search 0.12 ms; paged 50-row query 9.4 ms; Qt table with 20 000 rows renders in 0.04 s | `perfprobe.py` | SQLite + Qt model/view + keyset pagination meets large-dataset requirements |
 | All production wheels exist for **win_amd64 / cp312**: PySide6-Essentials, shiboken6, argon2-cffi(+bindings), cryptography, pyinstaller, platformdirs, segno | `pip download --platform win_amd64` | Windows dependency closure is validated before writing code |
 | Argon2id at m=64 MiB, t=3, p=2 → 76 ms/hash | `argon2` probe | Strong password hashing is practical for interactive login |
-| GitHub token is a **repo-scoped GitHub App token** without Actions API scope; pushes and PRs work | `gh api …/actions/permissions → 403`, `gh pr list → OK` | CI can be authored and pushed; run-status/log retrieval may be unavailable — must be verified in Phase 1 and reported honestly |
+| GitHub token is a **repo-scoped GitHub App token** without Actions API scope; pushes and PRs work | `gh api …/actions/permissions → 403`, `gh pr list → OK` | CI can be authored and pushed; run-status/log retrieval may be unavailable — must be verified in Phase 2 and reported honestly |
 | PyInstaller cannot bundle from the sandbox Python (no shared `libpython`) | `pyinstaller build.spec` error | Local packaging is Linux-only irrelevant; the real bundle/installer is built and smoke-tested on `windows-latest` |
 
 Full detail and mitigations: `docs/environment-and-limitations.md`.
@@ -238,8 +238,8 @@ patient-profile tabs, batched attachment hashing, and `PRAGMA` tuning (`journal_
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No Windows machine in this environment | Can't run the EXE here | Windows-only validation executed on GitHub Actions `windows-latest` (offscreen UI goldens + packaged-bundle smoke test + installer build); documented as a limitation with the exact CI evidence to attach |
-| GitHub Actions may not run / logs unreadable with this token | No CI-produced installer evidence | Phase 1 immediately pushes a minimal CI workflow and verifies whether runs execute and whether status is visible; if not, the fallback path is documented in the Phase report and `dist/` |
-| Qt LGPL compliance for a commercial closed-source app | Legal exposure | Dynamic linking via onedir (DLLs remain replaceable files), full licence texts shipped in `assets/notices/` and in the installer, no Qt modifications, Qt version pinned; audit re-run in Phase 10 |
+| GitHub Actions may not run / logs unreadable with this token | No CI-produced installer evidence | Phase 2 pushes the CI workflow and verifies whether runs execute and whether status is visible; if not, the fallback path is documented in the Phase report and `dist/` |
+| Qt LGPL compliance for a commercial closed-source app | Legal exposure | Dynamic linking via onedir (DLLs remain replaceable files), full licence texts shipped in `assets/notices/` and in the installer, no Qt modifications, Qt version pinned; audit re-run in Phase 15 |
 | Thermal/Bluetooth printer quirks | Broken receipts | Dedicated 58/80 mm templates (not scaled A4), paper-capability detection with graceful, explicit failure messages, and per-profile testing matrix |
 | Bengali shaping differences across Windows versions | Broken Bangla text | Fonts are bundled and registered explicitly; golden-image tests assert shaping |
 | Single-PC data loss | Clinic data loss | Mandatory backup subsystem with verified containers, pre-restore safety backups, integrity checks, and scheduled reminders |

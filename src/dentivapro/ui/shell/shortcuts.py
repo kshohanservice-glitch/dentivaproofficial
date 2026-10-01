@@ -35,7 +35,7 @@ class ShortcutSpec:
 
 
 SHORTCUTS: tuple[ShortcutSpec, ...] = (
-    ShortcutSpec("Ctrl+K", "Focus global search", "Navigation", note="Phase 7"),
+    ShortcutSpec("Ctrl+K", "Focus global search", "Navigation", note="Phase 12"),
     ShortcutSpec("Ctrl+B", "Collapse or expand the navigation", "Navigation"),
     ShortcutSpec("F5", "Refresh the current screen", "Navigation"),
     ShortcutSpec("Alt+Left", "Go back", "Navigation"),
@@ -44,11 +44,11 @@ SHORTCUTS: tuple[ShortcutSpec, ...] = (
     ShortcutSpec("Esc", "Close a dialog or drawer", "General"),
     ShortcutSpec("F1", "Open this shortcut reference", "General"),
     ShortcutSpec("Ctrl+Q", "Exit " + "Dentiva Pro", "General"),
-    ShortcutSpec("Ctrl+N", "New record in the current screen", "Actions", note="Phase 4 onwards"),
-    ShortcutSpec("Ctrl+Shift+P", "Register a new patient", "Actions", note="Phase 4"),
-    ShortcutSpec("Ctrl+S", "Save the current form", "Actions", note="Phase 4 onwards"),
-    ShortcutSpec("Ctrl+P", "Print preview for the active document", "Actions", note="Phase 5"),
-    ShortcutSpec("Ctrl+L", "Lock the session now", "Security", note="Phase 2"),
+    ShortcutSpec("Ctrl+N", "New record in the current screen", "Actions", note="Phase 6 onwards"),
+    ShortcutSpec("Ctrl+Shift+P", "Register a new patient", "Actions", note="Phase 6"),
+    ShortcutSpec("Ctrl+S", "Save the current form", "Actions", note="Phase 6 onwards"),
+    ShortcutSpec("Ctrl+P", "Print preview for the active document", "Actions", note="Phase 9"),
+    ShortcutSpec("Ctrl+L", "Lock the session now", "Security", note="Phase 3"),
 )
 
 #: Shortcuts that exist in this build. Everything else is documented with the phase that delivers it,

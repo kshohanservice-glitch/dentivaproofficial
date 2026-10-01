@@ -1,12 +1,12 @@
 # Environment Capabilities and Honest Limitations
 
-This document records what was empirically verified in the development environment during Phase 0, what
+This document records what was empirically verified in the development environment during Phase 1, what
 could not be verified here, and how each gap is closed. Nothing in this file is an assumption: every entry
 comes from a command whose result is summarised below.
 
 ## 1. Verified capabilities
 
-| Capability | Evidence (Phase 0 probe) | Consequence for the project |
+| Capability | Evidence (Phase 1 probe) | Consequence for the project |
 |---|---|---|
 | Python 3.11 sandbox, 3.12 targeted for Windows bundles | `python3 --version`, `pip download --platform win_amd64 --python-version 3.12` | Windows runtime is Python 3.12; development/tests run on 3.11 locally and 3.12 in CI |
 | PySide6 6.11.2 (Qt 6) installs and runs headless | `pip install PySide6-Essentials`; offscreen render + PDF written | The real UI toolkit is fully testable here (goldens, interactions, PDF) |
@@ -24,12 +24,12 @@ comes from a command whose result is summarised below.
 
 | Limitation | Evidence | Impact | Mitigation |
 |---|---|---|---|
-| No Windows machine or emulator available | Linux only; `wine` absent and `apt` unreachable | The EXE and the installer cannot be executed here | All Windows-specific validation runs on GitHub Actions `windows-latest` (bundle smoke test, goldens, installer build + installer smoke test) and the manual clean-machine checklist in Phase 11 |
+| No Windows machine or emulator available | Linux only; `wine` absent and `apt` unreachable | The EXE and the installer cannot be executed here | All Windows-specific validation runs on GitHub Actions `windows-latest` (bundle smoke test, goldens, installer build + installer smoke test) and the manual clean-machine checklist in Phase 17 |
 | `.NET`/NuGet unreachable | `api.nuget.org`, `packages.microsoft.com` → connection failure | Rules out a WPF/.NET stack in this environment | Not needed: the chosen stack is Python/Qt |
 | GitHub release-asset CDN blocked | `objects.githubusercontent.com` → no connection | Electron runtimes, apt packages, some binaries cannot be downloaded | Chosen stack depends only on PyPI, which is reachable |
 | Sandbox Python lacks shared library | PyInstaller analysis error | Local EXE bundling is impossible | Bundling is a CI responsibility; the spec is tested in CI |
-| Actions/K8s-style API scope missing on the token | `gh api .../actions/permissions` → 403 | CI run status/logs may not be readable from here | Phase 1 pushes a minimal workflow and reports exactly what is observable; if unavailable, the release report states it and relies on the user's account permissions |
-| No physical printers | No hardware in a sandbox | Real device behaviour cannot be proven here | Print layout is validated by rendering to PDF/PNG across the paper matrix; the physical printer checklist is manual in Phase 11 |
+| Actions/K8s-style API scope missing on the token | `gh api .../actions/permissions` → 403 | CI run status/logs may not be readable from here | the CI workflow is verified in Phase 2 and its outcome reported honestly; if unavailable, the release report states it and relies on the user's account permissions |
+| No physical printers | No hardware in a sandbox | Real device behaviour cannot be proven here | Print layout is validated by rendering to PDF/PNG across the paper matrix; the physical printer checklist is manual in Phase 17 |
 | No Bengali-capable Windows font assurance | Sandbox lacks Bengali fonts by default | Rendering would show boxes without our fonts | Fonts are bundled in the app; a runtime check blocks printing if the font cannot load |
 | No antivirus/SmartScreen environment | Sandbox | Code-signing effect cannot be demonstrated | Signing is implemented in CI when a certificate exists; otherwise the release is explicitly documented as unsigned |
 

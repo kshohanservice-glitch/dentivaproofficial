@@ -1,4 +1,4 @@
-# Dentiva Pro — Build, Installer, CI/CD and Release Architecture (Phase 0)
+# Dentiva Pro — Build, Installer, CI/CD and Release Architecture (Phase 1)
 
 ---
 
@@ -102,7 +102,7 @@ writes the artifacts into `dist/` in the repository and the report states exactl
 
 **Verification policy for this project:** the release artifact must come from CI. In this sandbox the
 GitHub token may lack the `actions` scope (a probe returned HTTP 403 for the Actions API), so the ability
-to trigger and read runs will be verified in Phase 1 and reported honestly. If runs cannot be triggered or
+to trigger and read runs is verified in Phase 2 and reported honestly. If runs cannot be triggered or
 observed, the release report will state: artifacts were built by the CI workflow definition, the local
 build was used for verification, and publishing requires the user's repo-level Actions permissions.
 There is no silent substitution of a local build for a CI release.
@@ -134,4 +134,4 @@ There is no silent substitution of a local build for a CI release.
 `docs/user/` contains: `installation.md`, `first-run-setup.md`, `daily-workflow.md`,
 `printing-guide.md`, `backup-restore-guide.md`, `security-and-roles.md`, `troubleshooting.md`,
 `faq.md`. `docs/development.md` covers building, testing, seeding, regenerating goldens and releasing.
-Both sets are written as deliverable documentation, not as internal notes, and are reviewed in Phase 12.
+Both sets are written as deliverable documentation, not as internal notes, and are reviewed in Phase 18.

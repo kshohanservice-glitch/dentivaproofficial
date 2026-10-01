@@ -1,4 +1,4 @@
-# Dentiva Pro — Printing, PDF and Document Rendering Architecture (Phase 0)
+# Dentiva Pro — Printing, PDF and Document Rendering Architecture (Phase 1)
 
 Printing is a first-class subsystem, not a side effect of a screen. This document defines the engine,
 templates, paper handling, preview, failure behaviour, determinism rules and test matrix.
@@ -184,7 +184,7 @@ in CI and attached to the phase report so layout quality is reviewable, not asse
 
 - Windows-only printer specifics (driver quirks, Bluetooth pairing, spooler state) cannot be exercised in
   this Linux build environment; they are tested on GitHub Actions `windows-latest` with a simulated print
-  engine, and the manual clean-machine checklist in Phase 11 covers a real printer/fax/PDF device.
+  engine, and the manual clean-machine checklist in Phase 17 covers a real printer/fax/PDF device.
 - "Save as PDF" availability depends on the Windows "Microsoft Print to PDF" feature; the app always
   provides its own offline PDF export as a guaranteed path.
 - Thermal printers that only accept ESC/POS raw commands are not supported directly; they are used through

@@ -149,9 +149,9 @@ Legend: **A** = automated, **M** = manual/clean-machine, **P** = performance-bud
 
 ## Execution policy
 
-- AT-001…AT-170 automated items run in CI per phase; AT-171 and the `M` items are executed at Phase 11 on a
+- AT-001…AT-170 automated items run in CI per phase; AT-171 and the `M` items are executed at Phase 17 on a
   clean Windows environment with a written evidence record (screenshots/log paths) stored in
-  `docs/phase-reports/phase-11/evidence/`.
+  `docs/phase-reports/phase-17/evidence/`.
 - A phase cannot be declared complete while any automated acceptance test in its scope fails.
 - Any waiver requires an explicit, documented justification approved by the user; silent downgrades are
   not permitted.

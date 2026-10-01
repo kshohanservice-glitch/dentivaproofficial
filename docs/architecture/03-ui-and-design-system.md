@@ -1,4 +1,4 @@
-# Dentiva Pro — UI Architecture and Clinical Design System (Phase 0)
+# Dentiva Pro — UI Architecture and Clinical Design System (Phase 1)
 
 Toolkit: **PySide6 / QtWidgets**. All styling comes from one token source; no screen defines its own
 colours, spacing or fonts. Everything below is implemented in `src/dentivapro/ui/design/` and consumed
@@ -260,7 +260,7 @@ shortcut is discoverable through tooltips and a searchable in-app shortcut refer
 
 ---
 
-## 9. UI defect checklist (executed per phase and in Phase 11/12)
+## 9. UI defect checklist (executed per phase and in Phases 17 and 18)
 
 1. Every label visible and untruncated at 100–200 % DPI, including long Bengali strings.
 2. Every icon optically centred in its button at each icon size.

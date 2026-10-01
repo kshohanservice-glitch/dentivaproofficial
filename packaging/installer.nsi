@@ -1,9 +1,11 @@
 ; Dentiva Pro - NSIS installer
 ;
 ; Build (on Windows, after pyinstaller has produced dist\DentivaPro):
-;     makensis /DPRODUCT_VERSION=1.0.0 /DSOURCE_DIR=..\dist\DentivaPro packaging\installer.nsi
+;     makensis /DPRODUCT_VERSION=1.0.0 /DSOURCE_DIR=..\dist\DentivaPro /DOUT_DIR=..\dist packaging\installer.nsi
+; makensis changes its working directory to the folder holding this script, so relative paths here are
+; relative to packaging\ (the CI build passes absolute paths instead).
 ;
-; Phase 1 delivers this installer as a working per-user skeleton; the phase-11 release validation
+; Phase 2 delivers this installer as a working per-user skeleton; the Phase 17 release validation
 ; exercises silent install, launch, uninstall and reinstall on a clean machine, and adds the optional
 ; all-users mode. Nothing here claims code signing: the installer is unsigned unless a real certificate
 ; is supplied to CI.

@@ -1,4 +1,4 @@
-# Dentiva Pro — Dependency, Licence and Cost Audit (Phase 0)
+# Dentiva Pro — Dependency, Licence and Cost Audit (Phase 1)
 
 Rules applied:
 1. Every production dependency must be usable in a commercial, redistributable Windows application.
@@ -6,8 +6,8 @@ Rules applied:
    recurring third-party subscription may be required for normal operation.
 3. Redistribution obligations (notices, source availability, relinking) are recorded and satisfied.
 
-Versions below were resolved during Phase 0 against PyPI for `win_amd64` / CPython 3.12 (verified
-downloadable). Exact pinned versions land in `requirements.lock` in Phase 1.
+Versions below were resolved during Phase 1 against PyPI for `win_amd64` / CPython 3.12 (verified
+downloadable). Exact pinned versions live in `pyproject.toml` (every runtime dependency is pinned to one version).
 
 ---
 
@@ -65,7 +65,7 @@ that fails if a dev package appears in `dist/`.
 **Conclusion:** the product has zero recurring third-party cost. Its only external requirement is a
 Windows PC.
 
-## 4. Licensing obligations checklist (implemented in Phase 1 and audited in Phase 10)
+## 4. Licensing obligations checklist (implemented in Phase 2 and audited in Phases 15 and 18)
 
 - [ ] `THIRD_PARTY_NOTICES.md` at repo root and `assets/notices/` in the installer with full licence texts
       (LGPL-3.0, Qt, PSF, MIT, BSD, Apache-2.0, ISC, OFL-1.1, zlib).

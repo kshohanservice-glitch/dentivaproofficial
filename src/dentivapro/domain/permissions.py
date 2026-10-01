@@ -4,8 +4,9 @@ Every sensitive operation in Dentiva Pro is gated by a permission code from this
 are declared once here so that roles, services, navigation entries and tests all reference the same
 strings — a mistyped code cannot silently disable a check.
 
-Phase 1 declares the catalogue so the shell can build permission-aware navigation. Enforcement (the
-session object, the service decorators and the query guards) arrives in Phase 2, and the test suite
+This catalogue is declared with the engineering foundation so the shell can build permission-aware
+navigation. Enforcement (the session object, the service decorators and the query guards) arrives in
+Phase 3, and the test suite
 proves that every service refuses an unauthorised caller rather than merely hiding a button.
 """
 
@@ -256,7 +257,7 @@ class PermissionSet:
 
 #: Permission set used while the product is under construction (it has no user accounts and no
 #: clinic data yet, so nothing can be leaked). It exists so the shell's full navigation structure can
-#: be reviewed, and it is replaced by the authenticated session in Phase 2. Any build that reaches
+#: be reviewed, and it is replaced by the authenticated session in Phase 3. Any build that reaches
 #: release must run with a real session: ``tools/qa`` verifies that no production entry point uses
 #: this constant.
 DEVELOPMENT_PREVIEW: Final[PermissionSet] = PermissionSet.administrator()

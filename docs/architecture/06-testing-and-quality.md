@@ -1,4 +1,4 @@
-# Dentiva Pro — Testing, Quality Gates and Verification Strategy (Phase 0)
+# Dentiva Pro — Testing, Quality Gates and Verification Strategy (Phase 1)
 
 The rule this project follows: **a feature is complete only when its data model, business logic, UI,
 error handling, permissions, persistence, audit behaviour, tests and integration behaviour all work.**
@@ -29,7 +29,7 @@ error handling, permissions, persistence, audit behaviour, tests and integration
   PyInstaller, packaged-bundle smoke test (launch offscreen, create DB, render prescription PDF, open
   existing DB, verify no missing DLLs), NSIS installer build, installer smoke (silent install → launch →
   uninstall), artifact upload. **The released installer is produced only here.**
-- **Clean Windows machine (manual checklist, Phase 11):** real install, activation, first-run setup,
+- **Clean Windows machine (manual checklist, Phase 17):** real install, activation, first-run setup,
   restart, printing on a physical printer/PDF, uninstall/reinstall, DPI change.
 
 ## 3. Test data strategy
@@ -51,11 +51,23 @@ error handling, permissions, persistence, audit behaviour, tests and integration
 4. Security suite green, including the permission matrix and secret scan of `dist/`.
 5. Printing matrix green with PDF artifacts uploaded.
 6. Performance budgets green (`tests/perf/test_budgets.py` asserts documented thresholds).
-7. Custom static gates: no bare `except: pass`; no raw SQL string concatenation in `src/`; no raw hex
-   colours/pixel paddings outside `ui/design/`; no `TODO/FIXME/XXX/HACK` markers; no `print()` in
-   production code (logging only); no `placeholder`, `coming soon`, `mock`, `dummy`, `lorem`, `fake`
-   identifiers in production code (case-insensitive scan with an allow-list for legitimate words such as
-   "placeholder text" in UI widgets); no secrets in the tree.
+7. Custom static gates — implemented as scripts in `tools/qa/` and run together with
+   `python tools/qa/check_all.py` (development mode on every push, `--release` in the release
+   checklist):
+   * `check_no_placeholders.py` — no `TODO/FIXME/XXX/HACK`; no `print()` outside the diagnostic CLI;
+     no silently swallowed broad exception handlers; no raw hex colours outside `ui/design/`. In
+     release mode it additionally fails on placeholder wording (`placeholder`, `coming soon`, `mock`,
+     `dummy`, `lorem`, `fake`) and on any remaining development scaffolding (the "not implemented yet"
+     screen, a navigation entry still marked unimplemented).
+   * `check_money.py` — accounting paths contain no `float()`; no `REAL/FLOAT/DOUBLE/NUMERIC` column in
+     a migration; `*_paisa`/`*_minor` columns are `INTEGER`; `core/money.py` keeps using `Decimal` and
+     rejecting float input.
+   * `check_offline.py` — no HTTP/socket client import in product code (a local-only
+     `socket.gethostname()` is the documented exception), no outbound URL call, no runtime dependency
+     that implies an online service.
+   * `check_traceability.py` — the requirement matrix is well formed; in release mode no row may still
+     be open and every referenced test path must exist.
+   * `tools/secret_scan.py` — no activation literal, token or key in the tree.
 8. Windows job: goldens, bundle smoke, installer build, installer smoke.
 
 A failing gate blocks the phase. Gates are implemented as scripts under `tools/qa/` so a developer can run
@@ -75,7 +87,7 @@ not exist in the suite.
 Documented checklists with an evidence slot (screenshot/log path) for: real printer/media behaviour,
 touch/pen input on Windows tablets, Bluetooth printer pairing, Windows SmartScreen behaviour of the
 unsigned installer, low-disk/storage-full behaviour on a real drive, USB-drive removal during backup,
-multi-monitor and 175/200 % DPI appearance, and the clean-machine sequence in Phase 11.
+multi-monitor and 175/200 % DPI appearance, and the clean-machine sequence in Phase 17.
 
 ## 7. Regression discipline
 
@@ -83,7 +95,7 @@ multi-monitor and 175/200 % DPI appearance, and the clean-machine sequence in Ph
   (`tests/regression/test_<defect-id>.py` with the phase and defect description in a docstring).
 - Phase reports list defects found and fixed with their test ids.
 - The full suite (including UI goldens and performance budgets) is run at every phase boundary, and the
-  Phase 11/12 runs are on the frozen release candidate only.
+  Phases 17 and 18 runs are on the frozen release candidate only.
 
 ## 8. Performance budgets (enforced)
 

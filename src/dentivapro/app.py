@@ -79,7 +79,7 @@ class ApplicationContext:
         self.migrations: MigrationRunner | None = None
         self.status = AppStatus()
         self.clinic = ClinicIdentity()
-        # Phase 2 replaces this with the permission set of the signed-in session.
+        # Phase 3 replaces this with the permission set of the signed-in session.
         self.permissions: PermissionSet = DEVELOPMENT_PREVIEW
         self.session_user: str = ""
         self.session_role: str = ""

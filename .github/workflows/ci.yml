@@ -51,6 +51,9 @@ jobs:
         run: mypy
       - name: Secret scan (activation code, tokens, keys)
         run: python tools/secret_scan.py
+      - name: Static quality gates (traceability, hygiene, offline, financial precision)
+        # The same gates run with --release as part of the release checklist; see tools/qa/README.md.
+        run: python tools/qa/check_all.py
 
   tests-linux:
     name: Test suite (Linux)
@@ -82,7 +85,10 @@ jobs:
 
   windows-build:
     name: Windows bundle, installer and smoke test
-    runs-on: windows-latest
+    # Pinned image: NSIS ships on windows-2022 but not on windows-2025 (which `windows-latest`
+    # tracks), and a reproducible release pipeline should not depend on which image is latest.
+    # The installer step installs NSIS itself when the image does not provide it.
+    runs-on: windows-2022
     permissions:
       contents: read
       pull-requests: write   # used only by the failure-diagnostics step at the end of this job
@@ -148,11 +154,15 @@ jobs:
             exit 1
           fi
           echo "using $nsis" | tee -a "$CI_LOG"
-          "$nsis" -VERSION | tee -a "$CI_LOG"
+          "$nsis" -VERSION 2>&1 | tee -a "$CI_LOG" || echo "(version query not supported by this makensis)" | tee -a "$CI_LOG"
 
           version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
+          # makensis changes its working directory to the script's folder, so every path handed to it is
+          # converted to an absolute Windows path instead of relying on the caller's directory.
+          source_dir=$(cygpath -w "$PWD/dist/DentivaPro")
+          out_dir=$(cygpath -w "$PWD/dist")
           echo "building installer for Dentiva Pro $version" | tee -a "$CI_LOG"
-          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a "$CI_LOG"
+          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=$source_dir" "/DOUT_DIR=$out_dir" packaging/installer.nsi 2>&1 | tee -a "$CI_LOG"
           ls -l dist 2>&1 | tee -a "$CI_LOG"
       - name: Installer smoke test (silent install, launch, uninstall)
         run: |
@@ -198,22 +208,28 @@ jobs:
             wait_for_path "$shortcut" absent 30 || { echo "uninstall did not remove the start menu shortcut"; exit 1; }
             echo "uninstalled cleanly"
           } 2>&1 | tee -a "$CI_LOG"
-      - name: Publish failure diagnostics to the pull request
-        # A failed Windows build must be diagnosable even when the person investigating cannot download
-        # the raw job log (for example an automation token without the `actions: read` scope). The tail of
-        # the captured output is therefore posted to the pull request on failure only. It runs exclusively
-        # on pull requests, and only when an earlier step already failed.
-        if: failure() && github.event_name == 'pull_request'
+      - name: Publish failure diagnostics
+        # A failed build must be diagnosable even when the person investigating cannot download the raw job
+        # log (for example an automation token without the `actions: read` scope). On failure only, the tail
+        # of the captured output is posted to the pull request, or — for a branch push, where there is no
+        # pull request — surfaced as a workflow annotation, which is readable through the API.
+        if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          {
-            echo "### ${{ github.job }} — captured output"
-            echo '```text'
-            tail -c 8000 "$CI_LOG" 2>/dev/null || echo "no output captured"
-            echo '```'
-          } > diagnostics.md
-          gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
+          tail_text=$(tail -c 6000 "$CI_LOG" 2>/dev/null || echo "no output captured")
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            {
+              echo "### ${{ github.job }} — captured output"
+              echo '```text'
+              echo "$tail_text"
+              echo '```'
+            } > diagnostics.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
+          else
+            escaped=$(printf '%s' "$tail_text" | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=CI output (tail)::$escaped"
+          fi
       - name: Upload Windows render artefacts (for the authoritative golden baseline)
         if: always()
         uses: actions/upload-artifact@v7

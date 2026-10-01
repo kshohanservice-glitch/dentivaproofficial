@@ -1,4 +1,4 @@
-# Dentiva Pro — Domain Model and Database Architecture (Phase 0)
+# Dentiva Pro — Domain Model and Database Architecture (Phase 1)
 
 Database: **SQLite 3** (file `dentivapro.db`), `journal_mode=WAL`, `foreign_keys=ON`,
 `synchronous=NORMAL`, `busy_timeout=5000`, `temp_store=MEMORY`.

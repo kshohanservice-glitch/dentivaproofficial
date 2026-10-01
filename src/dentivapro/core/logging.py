@@ -227,7 +227,10 @@ def configure_logging(
             file_handler.addFilter(RedactionFilter())
             root.addHandler(file_handler)
         except OSError as exc:  # pragma: no cover - depends on host permissions
-            print(f"[dentivapro] file logging unavailable: {exc}", file=sys.stderr)
+            # The logger may be unusable at this point, so this diagnostic goes straight to stderr.
+            print(
+                f"[dentivapro] file logging unavailable: {exc}", file=sys.stderr
+            )  # qa-allow: debug-print
 
         _ring_handler.setFormatter(formatter)
         _ring_handler.addFilter(RedactionFilter())
@@ -248,7 +251,7 @@ def configure_logging(
 def close_logging() -> None:
     """Flush and release every logging handler.
 
-    Used when the application stops writing to a data folder (the restore path in Phase 8) and by the
+    Used when the application stops writing to a data folder (the restore path in Phase 13) and by the
     test suite, so that on Windows an open log file can never keep a folder locked.
     """
     global _configured, _active_log_dir, _active_log_path  # noqa: PLW0603

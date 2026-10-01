@@ -54,7 +54,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.dashboard",
                 icon="layout-dashboard",
                 permission="dashboard.view",
-                phase="Phase 7",
+                phase="Phase 12",
                 planned=(
                     "Today's appointments, queue and new registrations",
                     "Collections and outstanding balances (permission aware)",
@@ -68,7 +68,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.patients",
                 icon="users",
                 permission="patient.view",
-                phase="Phase 4",
+                phase="Phase 6",
                 planned=(
                     "Registration with duplicate detection and Bengali content",
                     "Date-based list views and fast multi-field search",
@@ -81,7 +81,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.appointments",
                 icon="calendar-days",
                 permission="appointment.view",
-                phase="Phase 5",
+                phase="Phase 8",
                 planned=(
                     "Day and week calendar with dentist columns",
                     "Booking with conflict detection and status history",
@@ -94,7 +94,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.queue",
                 icon="list-ordered",
                 permission="queue.view",
-                phase="Phase 5",
+                phase="Phase 8",
                 planned=(
                     "Waiting room list with per-dentist queues",
                     "Token numbers, call/start/complete actions",
@@ -113,7 +113,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.treatments",
                 icon="stethoscope",
                 permission="visit.view",
-                phase="Phase 4",
+                phase="Phase 7",
                 planned=(
                     "Treatment catalogue with categories, codes and default prices",
                     "Clinical visits with findings, diagnosis and performed treatment",
@@ -126,7 +126,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.prescriptions",
                 icon="pill",
                 permission="prescription.view",
-                phase="Phase 5",
+                phase="Phase 9",
                 planned=(
                     "Multi-medicine prescriptions with dose, duration and instructions",
                     "Structured C/C, O/E, Dx and advice plus free clinical text",
@@ -139,7 +139,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.referrals",
                 icon="forward",
                 permission="referral.view",
-                phase="Phase 4",
+                phase="Phase 7",
                 planned=(
                     "Outgoing and incoming referrals with reason and destination",
                     "Follow-up tracking and referral history in the patient timeline",
@@ -156,7 +156,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.invoices",
                 icon="receipt-text",
                 permission="invoice.view",
-                phase="Phase 6",
+                phase="Phase 10",
                 planned=(
                     "Invoices with treatment and product lines, discounts and adjustments",
                     "Paid, partially paid, unpaid and void states with clear stamping",
@@ -169,7 +169,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.payments",
                 icon="banknote",
                 permission="payment.view",
-                phase="Phase 6",
+                phase="Phase 10",
                 planned=(
                     "Multiple payments per invoice across cash, bank, card and mobile wallets",
                     "Daily collections with payment-method breakdown",
@@ -182,7 +182,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.inventory",
                 icon="package",
                 permission="inventory.view",
-                phase="Phase 6",
+                phase="Phase 11",
                 planned=(
                     "Items, suppliers, batches and unit costs",
                     "Purchase, usage and adjustment movements with a stock ledger",
@@ -194,7 +194,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.accounting",
                 icon="calculator",
                 permission="finance.accounting.view",
-                phase="Phase 6",
+                phase="Phase 11",
                 planned=(
                     "Expenses with configurable categories and audited records",
                     "Other income and clinic-level financial summaries",
@@ -206,7 +206,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.reports",
                 icon="chart-column",
                 permission="finance.report.view",
-                phase="Phase 6",
+                phase="Phase 12",
                 planned=(
                     "Daily, weekly, monthly, quarterly and yearly financial analysis",
                     "Patient, clinical and inventory operational reports",
@@ -225,7 +225,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.staff",
                 icon="user-cog",
                 permission="staff.view",
-                phase="Phase 3",
+                phase="Phase 5",
                 planned=(
                     "Staff and user accounts with role assignment",
                     "Roles and granular permissions including financial restrictions",
@@ -237,7 +237,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.backup",
                 icon="database-backup",
                 permission="backup.view",
-                phase="Phase 8",
+                phase="Phase 13",
                 planned=(
                     "Verified backups that include patient attachments",
                     "Manual and scheduled backups (7, 15 or 30 days)",
@@ -249,7 +249,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.audit",
                 icon="rotate-ccw",
                 permission="audit.view",
-                phase="Phase 2",
+                phase="Phase 3",
                 planned=(
                     "Append-only audit trail of security and business critical actions",
                     "Filtering by user, action, entity and date",
@@ -261,7 +261,7 @@ NAV_SECTIONS: tuple[NavSection, ...] = (
                 label_key="nav.settings",
                 icon="settings",
                 permission="settings.view",
-                phase="Phase 3",
+                phase="Phase 5",
                 planned=(
                     "Clinic identity, dentists, printing profiles and paper sizes",
                     "Security policy including the automatic lock timeout",

@@ -1,4 +1,4 @@
-# Dentiva Pro — Backup, Restore and Data-Safety Architecture (Phase 0)
+# Dentiva Pro — Backup, Restore and Data-Safety Architecture (Phase 1)
 
 Backup is a commercial requirement: a clinic that loses patient and financial history has lost the
 business. This subsystem is therefore verified, atomic, self-describing and never silently partial.

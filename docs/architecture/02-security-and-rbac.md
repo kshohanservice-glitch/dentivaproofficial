@@ -1,4 +1,4 @@
-# Dentiva Pro — Security, Authentication, RBAC, Audit and Activation (Phase 0)
+# Dentiva Pro — Security, Authentication, RBAC, Audit and Activation (Phase 1)
 
 ---
 

@@ -7,7 +7,7 @@ The service is the only supported way to read or write a business setting:
 * typed values are cached in memory and refreshed when a change is made here or reported from another
   part of the application;
 * changes are reported through the ``on_change`` hook, which the audit subsystem subscribes to once
-  the audit trail is available (Phase 2), and are logged immediately either way.
+  the audit trail is available (Phase 3), and are logged immediately either way.
 """
 
 from __future__ import annotations
@@ -207,7 +207,7 @@ class SettingsService:
             self._cache.pop(key, None)
 
     def subscribe(self, hook: ChangeHook) -> None:
-        """Register an additional change listener (e.g. the audit service in Phase 2)."""
+        """Register an additional change listener (e.g. the audit service in Phase 3)."""
         existing = self._on_change
         if existing is None:
             self._on_change = hook
