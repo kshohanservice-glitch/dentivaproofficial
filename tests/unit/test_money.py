@@ -65,9 +65,13 @@ class TestArithmetic:
         assert total.amount == Decimal("70.00")
 
     def test_naive_float_would_drift_but_money_does_not(self) -> None:
-        float_total = sum(0.1 for _ in range(10))
-        money_total = sum_money([Money(Decimal("0.10"))] * 10)
+        # Accumulate step by step on purpose: Python 3.12's ``sum()`` uses compensated summation, so
+        # summing ten 0.1 values with it returns exactly 1.0 and would hide the drift this test documents.
+        float_total = 0.0
+        for _ in range(10):
+            float_total += 0.1
         assert float_total != 1.0  # documents why floats are banned from the money path
+        money_total = sum_money([Money(Decimal("0.10"))] * 10)
         assert money_total.amount == Decimal("1.00")
 
     def test_subtraction_can_go_negative(self) -> None:
