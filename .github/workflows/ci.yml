@@ -80,9 +80,12 @@ jobs:
   windows-build:
     name: Windows bundle, installer and smoke test
     runs-on: windows-latest
+    permissions:
+      contents: read
+      pull-requests: write   # temporary: failure diagnostics are posted to the pull request
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -91,39 +94,66 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: |
+          set -o pipefail
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          python -m pip install -e ".[dev]" 2>&1 | tee -a ci-output.log
       - name: Verify Windows version resource is up to date
-        run: python packaging/make_version_info.py --check
+        run: |
+          set -o pipefail
+          python packaging/make_version_info.py --check 2>&1 | tee -a ci-output.log
       - name: Run test suite on Windows
-        run: python -m pytest -q -p no:randomly
+        run: |
+          set -o pipefail
+          python -m pytest -q -p no:randomly 2>&1 | tee -a ci-output.log
       - name: Build the application bundle (PyInstaller onedir)
-        run: pyinstaller --noconfirm --clean packaging/dentivapro.spec
+        run: |
+          set -o pipefail
+          pyinstaller --noconfirm --clean packaging/dentivapro.spec 2>&1 | tee -a ci-output.log
       - name: Audit the bundle and launch it offscreen
-        run: python packaging/check_bundle.py dist/DentivaPro
+        run: |
+          set -o pipefail
+          python packaging/check_bundle.py dist/DentivaPro 2>&1 | tee -a ci-output.log
       - name: Build the installer (NSIS)
         run: |
-          $nsis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
-          if (-not (Test-Path $nsis)) { $nsis = "makensis" }
-          $version = python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)"
-          & $nsis "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi
+          set -o pipefail
+          nsis="/c/Program Files (x86)/NSIS/makensis.exe"
+          [ -x "$nsis" ] || nsis=makensis
+          version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
+          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a ci-output.log
       - name: Installer smoke test (silent install, launch, uninstall)
         run: |
-          $installer = Get-ChildItem dist\DentivaPro-Setup-*.exe | Select-Object -First 1
-          if (-not $installer) { throw "installer was not produced" }
-          Start-Process -FilePath $installer.FullName -ArgumentList "/S" -Wait
-          $installed = Join-Path $env:LOCALAPPDATA "Programs\DentivaPro\DentivaPro.exe"
-          if (-not (Test-Path $installed)) { throw "silent install did not place the application" }
-          $env:DENTIVAPRO_DATA_ROOT = Join-Path $env:RUNNER_TEMP "dentivapro-smoke-data"
-          $output = & $installed --check 2>&1 | Out-String
-          Write-Host $output
-          foreach ($expected in @("schema version", "integrity check ok", "foreign keys on", "bundled fonts ok")) {
-            if ($output -notmatch [regex]::Escape($expected)) { throw "installed application did not report '$expected'" }
-          }
-          Start-Process -FilePath (Join-Path $env:LOCALAPPDATA "Programs\DentivaPro\Uninstall.exe") -ArgumentList "/S" -Wait
-          if (Test-Path (Join-Path $env:LOCALAPPDATA "Programs\DentivaPro\DentivaPro.exe")) {
-            throw "uninstall did not remove the application"
-          }
+          set -o pipefail
+          {
+            installer=$(ls dist/DentivaPro-Setup-*.exe | head -1)
+            [ -n "$installer" ] || { echo "installer was not produced"; exit 1; }
+            "$installer" /S
+            installed="$LOCALAPPDATA/Programs/DentivaPro/DentivaPro.exe"
+            [ -f "$installed" ] || { echo "silent install did not place the application"; exit 1; }
+            export DENTIVAPRO_DATA_ROOT="$RUNNER_TEMP/dentivapro-smoke-data"
+            output=$("$installed" --check 2>&1)
+            echo "$output"
+            for expected in "schema version" "integrity check ok" "foreign keys on" "bundled fonts ok"; do
+              case "$output" in
+                *"$expected"*) ;;
+                *) echo "installed application did not report '$expected'"; exit 1 ;;
+              esac
+            done
+            "$LOCALAPPDATA/Programs/DentivaPro/Uninstall.exe" /S
+            sleep 5
+            [ ! -f "$installed" ] || { echo "uninstall did not remove the application"; exit 1; }
+          } 2>&1 | tee -a ci-output.log
+      - name: Publish failure diagnostics to the pull request
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### ${{ github.job }} — captured output"
+            echo '```text'
+            tail -c 8000 ci-output.log 2>/dev/null || echo "no output captured"
+            echo '```'
+          } > diagnostics.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
       - name: Upload Windows render artefacts (for the authoritative golden baseline)
         if: always()
         uses: actions/upload-artifact@v4
@@ -133,6 +163,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload bundle, installer and checksums
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dentivapro-windows
