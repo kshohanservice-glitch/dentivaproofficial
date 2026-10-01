@@ -25,14 +25,17 @@ env:
   QT_QPA_PLATFORM: offscreen
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PYTHONUNBUFFERED: "1"
+  # Every Windows step appends to this file; the failure step publishes its tail so a failed release
+  # build can be diagnosed without downloading logs.
+  CI_LOG: ci-output.log
 
 jobs:
   quality:
     name: Lint, format, types and secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -53,8 +56,8 @@ jobs:
     name: Test suite (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -70,7 +73,7 @@ jobs:
         run: python -m pytest -q -p no:randomly
       - name: Upload rendered screens (review artefacts, Linux baseline)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-renders-linux
           path: tests/ui/artifacts/screens
@@ -82,13 +85,13 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
-      pull-requests: write   # temporary: failure diagnostics are posted to the pull request
+      pull-requests: write   # used only by the failure-diagnostics step at the end of this job
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
@@ -96,39 +99,90 @@ jobs:
         run: |
           set -o pipefail
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]" 2>&1 | tee -a ci-output.log
+          python -m pip install -e ".[dev]" 2>&1 | tee -a "$CI_LOG"
       - name: Verify Windows version resource is up to date
         run: |
           set -o pipefail
-          python packaging/make_version_info.py --check 2>&1 | tee -a ci-output.log
+          python packaging/make_version_info.py --check 2>&1 | tee -a "$CI_LOG"
       - name: Run test suite on Windows
         run: |
           set -o pipefail
-          python -m pytest -q -p no:randomly 2>&1 | tee -a ci-output.log
+          python -m pytest -q -p no:randomly 2>&1 | tee -a "$CI_LOG"
       - name: Build the application bundle (PyInstaller onedir)
         run: |
           set -o pipefail
-          pyinstaller --noconfirm --clean packaging/dentivapro.spec 2>&1 | tee -a ci-output.log
+          pyinstaller --noconfirm --clean packaging/dentivapro.spec 2>&1 | tee -a "$CI_LOG"
       - name: Audit the bundle and launch it offscreen
         run: |
           set -o pipefail
-          python packaging/check_bundle.py dist/DentivaPro 2>&1 | tee -a ci-output.log
+          python packaging/check_bundle.py dist/DentivaPro 2>&1 | tee -a "$CI_LOG"
       - name: Build the installer (NSIS)
         run: |
           set -o pipefail
-          nsis="/c/Program Files (x86)/NSIS/makensis.exe"
-          [ -x "$nsis" ] || nsis=makensis
+          # NSIS is preinstalled on some Windows runner images and absent on others (windows-2025, which
+          # `windows-latest` tracks, does not ship it), so locate makensis and install it when missing.
+          # A packaging tool that cannot be found is a hard failure: the installer is never skipped.
+          locate_nsis() {
+            for candidate in \
+              "/c/Program Files (x86)/NSIS/makensis.exe" \
+              "/c/Program Files/NSIS/makensis.exe" \
+              "$(command -v makensis 2>/dev/null || true)" \
+              "$(command -v makensis.exe 2>/dev/null || true)"
+            do
+              if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          nsis="$(locate_nsis || true)"
+          if [ -z "$nsis" ]; then
+            echo "makensis not found on this runner; installing NSIS with Chocolatey" | tee -a "$CI_LOG"
+            choco install nsis -y --no-progress 2>&1 | tee -a "$CI_LOG"
+            nsis="$(locate_nsis || true)"
+          fi
+          if [ -z "$nsis" ]; then
+            echo "::error::makensis could not be located or installed on this runner"
+            exit 1
+          fi
+          echo "using $nsis" | tee -a "$CI_LOG"
+          "$nsis" -VERSION | tee -a "$CI_LOG"
+
           version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
-          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a ci-output.log
+          echo "building installer for Dentiva Pro $version" | tee -a "$CI_LOG"
+          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=dist\\DentivaPro" "/DOUT_DIR=dist" packaging/installer.nsi 2>&1 | tee -a "$CI_LOG"
+          ls -l dist 2>&1 | tee -a "$CI_LOG"
       - name: Installer smoke test (silent install, launch, uninstall)
         run: |
           set -o pipefail
+
+          # Wait for a path to appear/disappear: the NSIS uninstaller relaunches itself from a temporary
+          # copy, so the parent process returns before the files are gone.
+          wait_for_path() {
+            local path="$1" want="$2" attempts="${3:-60}"
+            for _ in $(seq "$attempts"); do
+              if [ "$want" = present ] && [ -e "$path" ]; then return 0; fi
+              if [ "$want" = absent ] && [ ! -e "$path" ]; then return 0; fi
+              sleep 2
+            done
+            return 1
+          }
+
           {
             installer=$(ls dist/DentivaPro-Setup-*.exe | head -1)
             [ -n "$installer" ] || { echo "installer was not produced"; exit 1; }
+
             "$installer" /S
             installed="$LOCALAPPDATA/Programs/DentivaPro/DentivaPro.exe"
-            [ -f "$installed" ] || { echo "silent install did not place the application"; exit 1; }
+            wait_for_path "$installed" present || { echo "silent install did not place the application"; exit 1; }
+            echo "installed: $installed"
+
+            shortcut="$APPDATA/Microsoft/Windows/Start Menu/Programs/Dentiva Pro/Dentiva Pro.lnk"
+            [ -f "$shortcut" ] || { echo "start menu shortcut was not created"; exit 1; }
+            echo "start menu shortcut: $shortcut"
+
             export DENTIVAPRO_DATA_ROOT="$RUNNER_TEMP/dentivapro-smoke-data"
             output=$("$installed" --check 2>&1)
             echo "$output"
@@ -138,11 +192,17 @@ jobs:
                 *) echo "installed application did not report '$expected'"; exit 1 ;;
               esac
             done
+
             "$LOCALAPPDATA/Programs/DentivaPro/Uninstall.exe" /S
-            sleep 5
-            [ ! -f "$installed" ] || { echo "uninstall did not remove the application"; exit 1; }
-          } 2>&1 | tee -a ci-output.log
+            wait_for_path "$installed" absent 60 || { echo "uninstall did not remove the application"; exit 1; }
+            wait_for_path "$shortcut" absent 30 || { echo "uninstall did not remove the start menu shortcut"; exit 1; }
+            echo "uninstalled cleanly"
+          } 2>&1 | tee -a "$CI_LOG"
       - name: Publish failure diagnostics to the pull request
+        # A failed Windows build must be diagnosable even when the person investigating cannot download
+        # the raw job log (for example an automation token without the `actions: read` scope). The tail of
+        # the captured output is therefore posted to the pull request on failure only. It runs exclusively
+        # on pull requests, and only when an earlier step already failed.
         if: failure() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -150,13 +210,13 @@ jobs:
           {
             echo "### ${{ github.job }} — captured output"
             echo '```text'
-            tail -c 8000 ci-output.log 2>/dev/null || echo "no output captured"
+            tail -c 8000 "$CI_LOG" 2>/dev/null || echo "no output captured"
             echo '```'
           } > diagnostics.md
           gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
       - name: Upload Windows render artefacts (for the authoritative golden baseline)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-renders-windows
           path: tests/ui/artifacts/screens
@@ -164,7 +224,7 @@ jobs:
           retention-days: 14
       - name: Upload bundle, installer and checksums
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dentivapro-windows
           path: |
