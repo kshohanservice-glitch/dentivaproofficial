@@ -1,0 +1,32 @@
+Dentiva Pro — Proprietary Software Licence
+
+Copyright (c) 2026 Shohan Khan. All rights reserved.
+
+Dentiva Pro is commercial software. The source code, application binaries, design assets,
+documentation and any accompanying installer are the exclusive property of the copyright holder.
+
+Permission is granted to the licensee (the clinic or organisation that purchased or was granted a
+licence to use Dentiva Pro) to install and use the software on hardware owned or controlled by that
+licensee for internal business purposes, in accordance with the licence terms provided at purchase.
+
+The following are prohibited without prior written permission from the copyright holder:
+  * copying, distributing, sublicensing, selling, renting or leasing the software or any part of it;
+  * reverse engineering, decompiling or disassembling the software except to the extent permitted by
+    applicable law;
+  * removing or altering any copyright, licence or proprietary notices;
+  * using the software to provide a commercial hosting or service-bureau offering to third parties.
+
+Third-party components included in or required by the software remain under their own licences
+(see THIRD_PARTY_NOTICES.md), including Qt for Python / PySide6 and Qt 6 under LGPL-3.0, the Inter and
+Noto Sans Bengali fonts under the SIL Open Font License 1.1, and other permissively licensed libraries.
+Nothing in this licence restricts the rights granted to you by those third-party licences, including
+your rights to the corresponding source of LGPL components and to replace the dynamically linked Qt
+libraries in the installation.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Contact: Shohan Khan — helloiamshohan@gmail.com

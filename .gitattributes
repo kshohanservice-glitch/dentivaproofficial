@@ -1,0 +1,23 @@
+# Normalise line endings for a Windows-first product; keep binary assets untouched.
+* text=auto eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.nsi text eol=lf
+*.spec text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff2 binary
+*.dprobackup binary
+*.exe binary
+
+# Keep generated bundles out of diffs
+dist/** linguist-generated=true
+tests/ui/goldens/** linguist-generated=true
