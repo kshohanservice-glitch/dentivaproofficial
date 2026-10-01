@@ -1,0 +1,71 @@
+# Findings
+
+Generated artifacts, local environments and build outputs that must never be committed.
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/*.tmp
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Packaging / installers (release artifacts are attached to GitHub Releases; the fallback
+# location `dist/` is explicitly managed and its contents are documented in dist/README.md)
+packaging/output/
+*.exe
+*.msi
+*.appx
+*.dprobackup
+*.partial
+
+# Application runtime data — never commit real clinic data
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+activation.dat
+*.jsonl
+logs/
+attachments/
+backups/
+exports/
+restore-staging/
+.restore-rollback/
+
+# UI golden artifacts generated locally (committed goldens live under tests/ui/goldens)
+tests/**/artifacts/
+tests/printing/rendered/
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets and credentials
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+secrets/
+!src/dentivapro/assets/notices/**
+
+# Local sandbox scaffolding used only for headless development on Linux
+tools/devsandbox/lib/
