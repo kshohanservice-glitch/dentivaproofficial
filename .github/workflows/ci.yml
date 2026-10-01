@@ -1,0 +1,281 @@
+name: CI
+
+# Gates that run on every push and pull request. Phase 1 defines them; later phases add the security,
+# licence-audit and printing-matrix jobs described in docs/architecture/07-build-installer-ci-release.md.
+#
+# The Windows job is the only place the real .exe and installer are produced: the development sandbox has
+# no Windows and its Python has no shared library for PyInstaller, so nothing here is faked — packaging
+# evidence always comes from a Windows runner.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  QT_QPA_PLATFORM: offscreen
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+  # Every Windows step appends to this file; the failure step publishes its tail so a failed release
+  # build can be diagnosed without downloading logs.
+  CI_LOG: ci-output.log
+
+jobs:
+  quality:
+    name: Lint, format, types and secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install gate tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Ruff lint
+        run: ruff check . --output-format=github
+      - name: Ruff format
+        run: ruff format --check .
+      - name: Mypy (strict)
+        run: mypy
+      - name: Secret scan (activation code, tokens, keys)
+        run: python tools/secret_scan.py
+      - name: Static quality gates (traceability, hygiene, offline, financial precision)
+        # The same gates run with --release as part of the release checklist; see tools/qa/README.md.
+        run: python tools/qa/check_all.py
+
+  tests-linux:
+    name: Test suite (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install Qt runtime libraries
+        # The offscreen Qt platform still links against these on a bare runner. The development sandbox
+        # uses tools/devsandbox/ instead because it has no apt access.
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libegl1 libxkbcommon0 libdbus-1-3
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run tests
+        run: python -m pytest -q -p no:randomly
+      - name: Upload rendered screens (review artefacts, Linux baseline)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-renders-linux
+          path: tests/ui/artifacts/screens
+          if-no-files-found: ignore
+          retention-days: 14
+
+  windows-build:
+    name: Windows bundle, installer and smoke test
+    # Pinned image: NSIS ships on windows-2022 but not on windows-2025 (which `windows-latest`
+    # tracks), and a reproducible release pipeline should not depend on which image is latest.
+    # The installer step installs NSIS itself when the image does not provide it.
+    runs-on: windows-2022
+    permissions:
+      contents: read
+      pull-requests: write   # used only by the failure-diagnostics step at the end of this job
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          set -o pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" 2>&1 | tee -a "$CI_LOG"
+      - name: Verify Windows version resource is up to date
+        run: |
+          set -o pipefail
+          python packaging/make_version_info.py --check 2>&1 | tee -a "$CI_LOG"
+      - name: Run test suite on Windows
+        run: |
+          set -o pipefail
+          python -m pytest -q -p no:randomly 2>&1 | tee -a "$CI_LOG"
+      - name: Build the application bundle (PyInstaller onedir)
+        run: |
+          set -o pipefail
+          pyinstaller --noconfirm --clean packaging/dentivapro.spec 2>&1 | tee -a "$CI_LOG"
+      - name: Audit the bundle and launch it offscreen
+        run: |
+          set -o pipefail
+          python packaging/check_bundle.py dist/DentivaPro 2>&1 | tee -a "$CI_LOG"
+      - name: Build the installer (NSIS)
+        run: |
+          set -o pipefail
+          # NSIS is preinstalled on some Windows runner images and absent on others (windows-2025, which
+          # `windows-latest` tracks, does not ship it), so locate makensis and install it when missing.
+          # A packaging tool that cannot be found is a hard failure: the installer is never skipped.
+          locate_nsis() {
+            for candidate in \
+              "/c/Program Files (x86)/NSIS/makensis.exe" \
+              "/c/Program Files/NSIS/makensis.exe" \
+              "$(command -v makensis 2>/dev/null || true)" \
+              "$(command -v makensis.exe 2>/dev/null || true)"
+            do
+              if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+                printf '%s\n' "$candidate"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          nsis="$(locate_nsis || true)"
+          if [ -z "$nsis" ]; then
+            echo "makensis not found on this runner; installing NSIS with Chocolatey" | tee -a "$CI_LOG"
+            choco install nsis -y --no-progress 2>&1 | tee -a "$CI_LOG"
+            nsis="$(locate_nsis || true)"
+          fi
+          if [ -z "$nsis" ]; then
+            echo "::error::makensis could not be located or installed on this runner"
+            exit 1
+          fi
+          # Git Bash rewrites arguments that look like POSIX paths, which turned "/DPRODUCT_VERSION=1.0.0"
+          # into "C:/Program Files/Git/DPRODUCT_VERSION=1.0.0" and made makensis look for a script by that
+          # name. Path conversion is disabled for the packaging tools.
+          export MSYS_NO_PATHCONV=1
+          export MSYS2_ARG_CONV_EXCL='*'
+
+          echo "using $nsis" | tee -a "$CI_LOG"
+          "$nsis" -VERSION 2>&1 | tee -a "$CI_LOG" || echo "(version query not supported by this makensis)"
+          echo | tee -a "$CI_LOG"
+
+          version=$(python -c "import sys; sys.path.insert(0, 'src'); from dentivapro.version import __version__; print(__version__)")
+          # makensis changes its working directory to the script's folder, so every path handed to it is
+          # converted to an absolute Windows path instead of relying on the caller's directory.
+          source_dir=$(cygpath -w "$PWD/dist/DentivaPro")
+          out_dir=$(cygpath -w "$PWD/dist")
+          echo "building installer for Dentiva Pro $version" | tee -a "$CI_LOG"
+          "$nsis" "/DPRODUCT_VERSION=$version" "/DSOURCE_DIR=$source_dir" "/DOUT_DIR=$out_dir" packaging/installer.nsi 2>&1 | tee -a "$CI_LOG"
+          ls -l dist 2>&1 | tee -a "$CI_LOG"
+      - name: Installer smoke test (silent install, launch, uninstall)
+        run: |
+          set -o pipefail
+          # The installer's silent switch would otherwise be rewritten by Git Bash into a path.
+          export MSYS_NO_PATHCONV=1
+          export MSYS2_ARG_CONV_EXCL='*'
+
+          # Wait for a path to appear/disappear: the NSIS uninstaller relaunches itself from a temporary
+          # copy, so the parent process returns before the files are gone.
+          wait_for_path() {
+            local path="$1" want="$2" attempts="${3:-60}"
+            for _ in $(seq "$attempts"); do
+              if [ "$want" = present ] && [ -e "$path" ]; then return 0; fi
+              if [ "$want" = absent ] && [ ! -e "$path" ]; then return 0; fi
+              sleep 2
+            done
+            return 1
+          }
+
+          {
+            installer=$(ls dist/DentivaPro-Setup-*.exe | head -1)
+            [ -n "$installer" ] || { echo "installer was not produced"; exit 1; }
+
+            "$installer" /S
+            installed="$LOCALAPPDATA/Programs/DentivaPro/DentivaPro.exe"
+            wait_for_path "$installed" present || { echo "silent install did not place the application"; exit 1; }
+            echo "installed: $installed"
+
+            shortcut="$APPDATA/Microsoft/Windows/Start Menu/Programs/Dentiva Pro/Dentiva Pro.lnk"
+            [ -f "$shortcut" ] || { echo "start menu shortcut was not created"; exit 1; }
+            echo "start menu shortcut: $shortcut"
+
+            export DENTIVAPRO_DATA_ROOT="$RUNNER_TEMP/dentivapro-smoke-data"
+            output=$("$installed" --check 2>&1)
+            echo "$output"
+
+            # The self-check prints aligned "key : value" lines; match the fields, not substrings, so a
+            # change of column padding can never make this test pass or fail for the wrong reason.
+            check_field() {
+              local label="$1" expected="$2"
+              if ! printf '%s\n' "$output" | grep -Eq "^[[:space:]]*${label}[[:space:]]*:[[:space:]]*${expected}[[:space:]]*$"; then
+                echo "installed application did not report '${label}: ${expected}'"
+                exit 1
+              fi
+              echo "verified ${label}: ${expected}"
+            }
+            check_field "journal mode" "wal"
+            check_field "foreign keys" "on"
+            check_field "integrity check" "ok"
+            check_field "bundled fonts" "ok"
+            check_field "schema version" "[0-9]+"
+            check_field "tables" "[0-9]+"
+            check_field "setup complete" "no"
+
+            "$LOCALAPPDATA/Programs/DentivaPro/Uninstall.exe" /S
+            wait_for_path "$installed" absent 60 || { echo "uninstall did not remove the application"; exit 1; }
+            wait_for_path "$shortcut" absent 30 || { echo "uninstall did not remove the start menu shortcut"; exit 1; }
+            echo "uninstalled cleanly"
+          } 2>&1 | tee -a "$CI_LOG"
+      - name: Publish failure diagnostics
+        # A failed build must be diagnosable even when the person investigating cannot download the raw job
+        # log (for example an automation token without the `actions: read` scope). On failure only, the tail
+        # of the captured output is posted to the pull request, or — for a branch push, where there is no
+        # pull request — surfaced as a workflow annotation, which is readable through the API.
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tail_text=$(tail -c 6000 "$CI_LOG" 2>/dev/null || echo "no output captured")
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            {
+              echo "### ${{ github.job }} — captured output"
+              echo '```text'
+              echo "$tail_text"
+              echo '```'
+            } > diagnostics.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
+          else
+            # Workflow annotations are truncated to about a kilobyte each, so the tail is published in
+            # chunks (oldest first): the failing command stays readable in the Actions view even when the
+            # raw log cannot be downloaded.
+            chunk_dir="$RUNNER_TEMP/ci-chunks"
+            rm -rf "$chunk_dir" && mkdir -p "$chunk_dir"
+            printf '%s' "$tail_text" | tr -d '\r' | split -b 900 - "$chunk_dir/part-"
+            for chunk in "$chunk_dir"/part-*; do
+              [ -f "$chunk" ] || continue
+              escaped=$(sed -e 's/%/%25/g' "$chunk" | awk '{printf "%s%%0A", $0}')
+              echo "::error title=CI output $(basename "$chunk")::$escaped"
+            done
+          fi
+      - name: Upload Windows render artefacts (for the authoritative golden baseline)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-renders-windows
+          path: tests/ui/artifacts/screens
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload bundle, installer and checksums
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dentivapro-windows
+          path: |
+            dist/DentivaPro
+            dist/DentivaPro-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 14
