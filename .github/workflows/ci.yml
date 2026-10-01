@@ -227,8 +227,17 @@ jobs:
             } > diagnostics.md
             gh pr comment "${{ github.event.pull_request.number }}" --body-file diagnostics.md
           else
-            escaped=$(printf '%s' "$tail_text" | sed -e 's/%/%25/g' -e 's/\r//g' | awk '{printf "%s%%0A", $0}')
-            echo "::error title=CI output (tail)::$escaped"
+            # Workflow annotations are truncated to about a kilobyte each, so the tail is published in
+            # chunks (oldest first): the failing command stays readable in the Actions view even when the
+            # raw log cannot be downloaded.
+            chunk_dir="$RUNNER_TEMP/ci-chunks"
+            rm -rf "$chunk_dir" && mkdir -p "$chunk_dir"
+            printf '%s' "$tail_text" | tr -d '\r' | split -b 900 - "$chunk_dir/part-"
+            for chunk in "$chunk_dir"/part-*; do
+              [ -f "$chunk" ] || continue
+              escaped=$(sed -e 's/%/%25/g' "$chunk" | awk '{printf "%s%%0A", $0}')
+              echo "::error title=CI output $(basename "$chunk")::$escaped"
+            done
           fi
       - name: Upload Windows render artefacts (for the authoritative golden baseline)
         if: always()

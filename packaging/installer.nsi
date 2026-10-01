@@ -15,6 +15,10 @@ Unicode true
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
+; The uninstaller shows a custom "what happens to the clinic data" page, whose ${NSD_*} macros come
+; from nsDialogs.nsh - MUI2 does not pull them in by itself.
+!include "nsDialogs.nsh"
+!include "WinMessages.nsh"
 
 !ifndef PRODUCT_VERSION
   !define PRODUCT_VERSION "1.0.0"
@@ -48,6 +52,14 @@ VIAddVersionKey "FileDescription" "${PRODUCT_NAME} installer"
 VIAddVersionKey "FileVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "LegalCopyright" "Copyright (c) ${PRODUCT_PUBLISHER} <${PRODUCT_EMAIL}>"
+
+; Windows shows this icon for the installer executable, the uninstaller, the Start Menu entry and the
+; Add/Remove Programs listing. The path is relative to this script's folder (makensis switches to it).
+!ifndef ICON_FILE
+  !define ICON_FILE "..\src\dentivapro\assets\branding\app_icon.ico"
+!endif
+!define MUI_ICON "${ICON_FILE}"
+!define MUI_UNICON "${ICON_FILE}"
 
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
