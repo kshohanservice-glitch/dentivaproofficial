@@ -159,10 +159,13 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall ${PRODUCT_NAME}.lnk"
   RMDir "$SMPROGRAMS\${PRODUCT_NAME}"
 
-  ; The uninstaller deletes the application files it installed, and the data folder only when the user
-  ; explicitly asked for it above.
-  Delete "$INSTDIR\Uninstall.exe"
+  ; The uninstaller deletes exactly the files it installed - the executable, the bundled runtime and the
+  ; uninstaller itself - and only then the folder if nothing else is in it. Clinic data lives outside
+  ; $INSTDIR and is handled by the choice above, so a user who installed into a folder that also holds
+  ; their own files keeps those files.
+  Delete "$INSTDIR\${PRODUCT_EXE}"
   RMDir /r "$INSTDIR\_internal"
+  Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 
   DeleteRegKey HKCU "${UNINSTALL_KEY}"
